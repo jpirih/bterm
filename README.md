@@ -57,6 +57,7 @@ In short you can use bterm just like you are used to use your old terminal.
 * On bottom bar you can at all times see which directory are you in. 
 * If you are inside the directory which is git repository you can see the name of the branch 
 you are in  on the bottom bar. 
+* if bterm recognizes git and compatible shell (like bash or zsh) it shows  currently active branch too .
 
 ### bterm for development: 
 Inside of bterm you can use all development tools that you need for your work:
