@@ -27,11 +27,29 @@ But as mentioned **bterm** is completely customizable.
 
 When you selected  your  settings open .bterm.json file for further configuration. 
 
+### bterm settings preview
+<p algin="center">
+    <img src="http://i.imgur.com/qWeag5b.png">
+</p>
+
 On Linux or MacOS  the .bterm.json is located in `~/.bterm.json`.
 On Windows you can find it inside `C:\Users\user\.bterm.json`.
 
 Inside **.bterm.json**, you can easily change font size, font color and other colors using standard 
-html color codes.
+html color codes. 
+
+## bterm window preview 
+<p algin="center">
+    <img src="http://i.imgur.com/FqzeSXV.png">
+</p>
+
+As you can see from the picture above bterm is pretty strait forward termial at 
+first sight. Top bar is reserved for tabs.  
+Than is the main shell window. 
+Bottom bar gives the user some very useful information about present working directory. 
+If this directory is also git repository  you can find the branch name in botom right corner.
+And at the end is the settings button which opens the right settings menu. 
+
 
 ## Usage 
 In short you can use bterm just like you are used to use your old terminal. 
@@ -40,16 +58,32 @@ In short you can use bterm just like you are used to use your old terminal.
 * If you are inside the directory which is git repository you can see the name of the branch 
 you are in  on the bottom bar. 
 
+### bterm for development: 
+Inside of bterm you can use all development tools that you need for your work:
+* git - version control 
+* text editors (vim, nano ...)
+* package managers like (npm, python-pip ...)
+* ssh for remote access
+
+And all the others.  
+**Important** of course you need to install all tools mentioned above properly. All windows user 
+ we already know the process about adding dev tools to system path and adjusting 
+ the settings. 
+
 ### Keyboard shortcuts 
 Shortcuts in **bterm** are similar as you already know them for instance 
 <code>ctrl + t </code> for new tab or <code>ctrl + n </code> for new window.
  
- ### Copy and Paste 
- * To copy select text first then right-click on it and select Copy
- * To paste right click and select Paste. 
+### Copy and Paste 
+* To copy select text first then right-click on it and select Copy
+* To paste right click and select Paste.
+ 
+### Clicking links in bterm
+For opening links from bterm you simply used the hotkey that you can choose inside
+settings + click. for example <code>ctrl + click </code>.
  
  
-### Hacking on bterm
+## Hacking on bterm
 
 ```sh
 git clone https://github.com/bleenco/bterm.git
@@ -57,7 +91,7 @@ npm install
 npm start
 ```
 
-To make a production build run
+### To make a production build run
 
 ```sh
 npm run dist
