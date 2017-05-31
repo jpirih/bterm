@@ -83,6 +83,11 @@ app.on('browser-window-created', (e: Event, win: Electron.BrowserWindow) => {
     ev.preventDefault();
     current.webContents.send('navigate', url);
   });
+
+  current.webContents.on('new-window', (ev: Electron.Event, url: string) => {
+    ev.preventDefault();
+    current.webContents.send('url-clicked', url);
+  });
 });
 
 app.on('browser-window-focus', (e: Event, win: Electron.BrowserWindow) => {
@@ -123,11 +128,11 @@ function handleWindowsOnClose() {
   windows = windows.filter(w => w.id !== current.id);
   current.close();
   current = windows[windows.length - 1] || null;
+
+  if (!windows.length) { setTimeout(() => process.exit(0), 5000); }
 }
 
 function registerShortcuts(win: Electron.BrowserWindow): void {
-  let isLinux = platform() === 'linux';
-
   let keypressFunctions = {
     send: (key, value) => win.webContents.send(key, value),
     toggleDevTools: () => win.webContents.toggleDevTools(),
@@ -135,10 +140,6 @@ function registerShortcuts(win: Electron.BrowserWindow): void {
   };
 
   keyboardShortcuts.forEach(shortcut => {
-    if (isLinux && shortcut.sckey === 'copy') {
-      return;
-    }
-
     globalShortcut.register(shortcut.keypress, () => {
       keypressFunctions[shortcut.sctype](shortcut.sckey, shortcut.scvalue);
     });

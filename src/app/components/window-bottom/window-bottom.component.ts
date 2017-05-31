@@ -3,6 +3,8 @@ import { XtermService } from '../../services/xterm.service';
 import { SearchService } from '../../services/search.service';
 import { platform } from 'os';
 import { GITService, TGitStatus } from '../../services/git.service';
+import { existsSync } from 'fs';
+import { homedir } from 'os';
 
 export class ISearchForm {
   query: string
@@ -36,11 +38,6 @@ export class WindowBottomComponent implements OnInit {
 
   ngOnInit() {
     this.searchForm = new SearchForm();
-
-    if (platform() === 'win32') {
-      return;
-    }
-
     this.xterm.titleEvents.subscribe(event => {
       if (event.title === ':') {
         this.currentDir = null;
@@ -53,10 +50,16 @@ export class WindowBottomComponent implements OnInit {
       this.zone.run(() => {
         if (this.xterm.terminals[event.index] && event.index === this.xterm.currentIndex) {
           this.currentProcess = this.xterm.terminals[event.index].title;
-          this.currentDir = this.xterm.terminals[event.index].dir;
-          this._git.dir = this.currentDir;
-          this._git.branch.then(res => this.currentBranch = res);
-          this._git.status.then(res => this.currentStatus = res);
+
+          let dir = this.xterm.terminals[event.index].dir;
+          dir = dir.replace(/~/, homedir());
+          if (existsSync(dir)) {
+            process.chdir(dir);
+            this.currentDir = this.xterm.terminals[event.index].dir;
+            this._git.dir = this.currentDir;
+            this._git.branch.then(res => this.currentBranch = res);
+            this._git.status.then(res => this.currentStatus = res);
+          }
         }
       });
     });

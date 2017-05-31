@@ -28,8 +28,7 @@ export class PTYService {
         name: 'xterm-color',
         cols: 80,
         rows: 30,
-        cwd: process.cwd() || os.homedir(),
-        env: process.env
+        cwd: process.cwd() || os.homedir()
       }),
       input: new EventEmitter<string>(),
       output: new EventEmitter<string>(),
@@ -44,7 +43,7 @@ export class PTYService {
   initializeEvents(ps: Process): void {
     ps.pty.on('data', (data: string) => ps.output.emit(data));
     ps.pty.on('exit', (data: string) => {
-      if (ps.pty) { ps.pty.kill('SIGHUP'); }
+      if (ps.pty && os.platform() !== 'win32') { ps.pty.kill('SIGHUP'); }
       this.processes = this.processes.filter((proc: Process) => proc !== ps);
       ps.exit.emit(true);
     });

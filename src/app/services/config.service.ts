@@ -2,11 +2,15 @@ import { Injectable, Provider } from '@angular/core';
 import { Terminal } from './xterm.service';
 import * as os from 'os';
 import * as fs from 'fs';
+import { join } from 'path';
 import { CssBuilder } from '../../utils';
+import { IUrlKeys } from './system.service';
 
 export interface IShellDef {
   shell: string;
   args: string[];
+  short?: string;
+  toString?: () => string;
 };
 
 @Injectable()
@@ -31,6 +35,7 @@ export class ConfigService {
       this.recovery();
     }
 
+    this.writePS1();
     this.readConfig();
     this.updateShell();
     this.setWatcher();
@@ -86,27 +91,34 @@ export class ConfigService {
       this.css.add(`.xterm-color-${index + 1}`, `color: ${color};`);
     });
 
+    if (!this.config.settings.urlKey) { this.config.settings['urlKey'] = 'shift'; }
+
+    this.css.add('html', 'background: ${this.config.style.background} !important;');
     this.css.add('.terminal-cursor', `background: ${this.config.style.cursor} !important; color: ${this.config.style.cursor} !important;`);
     this.css.add('.terminal-instance .active', `font-size: ${this.config.settings.font_size}px !important;`);
-    this.css.add('.xterm-rows', `color: ${this.config.style.color} !important; font-family: ${this.config.settings.font} !important;`);
+    this.css.add('.xterm-rows',
+      `color: ${this.config.style.color}; font-family: ${this.config.settings.font.family}; font-size: ${this.config.settings.font.size}`
+    );
     this.css.add('.close-tab-fill', `fill: ${this.config.style.color} !important;`);
     this.css.add('.close-tab-fill:hover', `fill: ${this.config.style.colors[3]} !important;`);
     this.css.add('.theme-fg-color', `color: ${this.config.style.color} !important;`);
     this.css.add('.theme-bg-color', `color: ${this.config.style.background} !important;`);
+    this.css.add('.theme-bg', `background-color: ${this.config.style.background} !important;`);
+    this.css.add('.theme-fg', `background-color: ${this.config.style.color} !important;`);
     this.css.add('.theme-fg-fill', `fill: ${this.config.style.color} !important;`);
 
     this.css.inject();
 
     terminal.style.padding = this.config.settings.windowPadding;
 
-    doc.style.fontFamily = this.config.settings.font;
-    doc.style.fontSize = this.config.settings.font_size + 'px';
+    doc.style.fontFamily = this.config.settings.font.family;
+    doc.style.fontSize = this.config.settings.font.size + 'px';
     terminal.style.background = this.config.style.background;
     topBar.style.background = this.config.style['top_bar_background'];
     bottomBar.style.background = this.config.style['bottom_bar_background'];
     sidebar.style.background = this.config.style.background;
 
-    topBar.style.font = this.config.style.font;
+    topBar.style.font =  this.config.settings.font.family;
     [].forEach.call(topBar.querySelectorAll('.title'), title => {
       title.style.color = this.config.style.color;
     });
@@ -131,6 +143,28 @@ export class ConfigService {
     this.decorateTerminals();
   }
 
+  updateConfig() {
+    this.writeConfig();
+    this.setConfig();
+  }
+
+  setFont(font: string) {
+    if (this.config && this.config.settings) {
+      this.config.settings['font'] = { family: font, size: this.config.settings.font.size || '13' };
+    }
+    this.updateConfig();
+  }
+
+  setShell(shell: IShellDef) {
+    if (this.config && this.config.settings) { this.config.settings['shell'] = shell; }
+    this.updateConfig();
+  }
+
+  setUrlKey(urlkey: IUrlKeys) {
+    if (this.config && this.config.settings) { this.config.settings['urlKey'] = urlkey.key; }
+    this.updateConfig();
+  }
+
   setSidebarConfig(): void {
     setTimeout(() => {
       let doc: HTMLElement = document.documentElement;
@@ -138,7 +172,7 @@ export class ConfigService {
 
       [].forEach.call(sidebar.querySelectorAll('.menu-open path'), dot => dot.style.fill = this.config.style.color);
       let closeIcon = sidebar.querySelector('.close-icon > svg > path') as SVGPathElement;
-      let sideBarHeading = sidebar.querySelector('.sidebar-container > h1') as HTMLElement;
+      let sideBarHeading = sidebar.querySelector('.sidebar h1') as HTMLElement;
 
       if (closeIcon) {
         closeIcon.style.fill = this.config.style.color;
@@ -178,23 +212,29 @@ export class ConfigService {
         config = updatedConfig;
       }
     });
+
+    return this.config;
   }
 
   readConfig(): void {
-    this.config = JSON.parse(fs.readFileSync(this.configPath, 'utf8'));
+    this.config = Object.assign({}, this.getDefaultConfig(), JSON.parse(fs.readFileSync(this.configPath, 'utf8')));
   }
 
   getDefaultConfig(): any {
     let defaultConfig = {
       'settings': {
-        'font': 'monaco, Menlo, \'DejaVu Sans Mono\', \'Lucida Console\', monospace',
-        'font_size': '13',
+        'font': {
+          'family': 'monaco, Menlo, \'DejaVu Sans Mono\', \'Lucida Console\', monospace',
+          'size': '13'
+        },
         'font_smoothing': 'subpixel-antialiased',
         'cursor_blink': false,
         'windowPadding': '20px 35px 10px 35px',
         'clipboard_notice': false,
         'theme_name': 'AtelierSulphurpool',
-        'scrollBufferSave': false
+        'scrollBufferSave': false,
+        'shells': [ 'bash', 'zsh', 'sh', 'powershell', 'cmd', 'login', 'tcsh', 'csh', 'ash' ],
+        'urlKey': 'shift'
       },
       'style': {
         'background': '#090300',
@@ -252,6 +292,32 @@ export class ConfigService {
 
   writeConfig(): void {
     fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2), 'utf8');
+  }
+
+  writePS1(): void {
+    const bashrcPath = join(os.homedir(), '.bashrc');
+    const contents = fs.readFileSync(bashrcPath).toString();
+    let found: boolean;
+
+    let splitted = contents.split('\n');
+    splitted = splitted.map(line => {
+      if (line.includes('PS1=') && !line.includes('\\[\\033]0;\\w\\007\\]')) {
+        found = true;
+        line = line.replace(/PS1=['"](.*)['"]/g, 'PS1="\\[\\033]0;\\w\\007\\]$1"');
+      }
+
+      if (line.includes('\\[\\033]0;\\w\\007\\]')) {
+        found = true;
+      }
+
+      return line;
+    });
+
+    if (!found) {
+      splitted.push('PS1="\\[\\033]0;\\w\\007\\]> "');
+    }
+
+    fs.writeFileSync(bashrcPath, splitted.join('\n'), 'utf8');
   }
 }
 

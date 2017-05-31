@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { ConfigService } from '../../services/config.service';
+import { ConfigService, IShellDef } from '../../services/config.service';
 import { SlimScrollOptions } from 'ng2-slimscroll';
 import { themes } from '../../themes';
+import { IFonts, IUrlKeys, SystemService } from '../../services/system.service';
 
 @Component({
   selector: 'window-sidebar',
@@ -13,8 +14,15 @@ export class WindowSidebarComponent implements OnInit {
   scrollOptions: SlimScrollOptions;
   themeNames: string[];
   selectedTheme: string;
+  availableFonts: IFonts[];
+  availableShells: IShellDef[];
+  availableUrlKeys: IUrlKeys[];
 
-  constructor(private config: ConfigService) {
+  constructor(private config: ConfigService, private _system: SystemService) {
+    this.availableFonts = [];
+    this.availableShells = [];
+    this.availableUrlKeys = this._system.getUrlKeys();
+
     this.menu = 'themes';
     this.scrollOptions = new SlimScrollOptions({
       barBackground: '#666666',
@@ -28,7 +36,13 @@ export class WindowSidebarComponent implements OnInit {
   ngOnInit() {
     this.themeNames = Object.keys(themes);
     this.selectedTheme = this.config.config.settings['theme_name'];
+    this._system.getFonts().then(f => this.availableFonts = f);
+    this._system.getShells().then(s => this.availableShells = s);
   }
+
+  setFont(font: string) { this.config.setFont(font); }
+  setShell(shell: IShellDef) { this.config.setShell(shell); }
+  setUrlKey(key: IUrlKeys) { this.config.setUrlKey(key); }
 
   previewTheme(theme: string): void {
     let styles = { style: themes[theme] };
@@ -43,6 +57,14 @@ export class WindowSidebarComponent implements OnInit {
 
   closeSidebar(): void {
     this.opened = false;
+    this.config.setSidebarConfig();
+  }
+
+  setMenu(e: MouseEvent, menu: string): void {
+    e.preventDefault();
+    e.stopPropagation();
+
+    this.menu = menu;
     this.config.setSidebarConfig();
   }
 }

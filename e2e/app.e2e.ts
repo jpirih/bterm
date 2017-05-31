@@ -2,6 +2,7 @@ const Application = require('spectron').Application;
 const { resolve } = require('path');
 import { expect } from 'chai';
 import { wait } from './helpers';
+import { homedir } from 'os';
 
 let getElectronPath = () => {
   let electronPath = resolve(__dirname, '../../node_modules/.bin/electron');
@@ -557,4 +558,64 @@ describe('bterm launch', function() {
       .then(text => expect(text).to.contain(testString));
   });
 
+it('should copy and paste the text', () => {
+  let text = 'texttotest';
+  let textOut = '';
+  return this.app.client.waitUntilWindowLoaded()
+    .then(() => this.app.client.keys(text))
+    .then(() => wait(1000))
+    .then(() => this.app.client.getText('.terminal-instance'))
+    .then((result) => textOut = result.replace(/\n|\r/g, '').replace(/ /g, ''))
+    .then(() => expect(textOut.endsWith(text)).to.be.true)
+    .then(() => this.app.client.browserWindow.send('clearTab', true))
+    .then(() => wait(1000))
+    .then(() => this.app.client.getText('.terminal-instance'))
+    .then((result) => textOut = result.replace(/\n|\r/g, '').replace(/ /g, ''))
+    .then(() => expect(textOut.endsWith(text)).to.be.false)
+    .then(() => wait(1000))
+    .then(() => this.app.client.getSelectedText())
+    .then((result) => expect(result).to.equal(''))
+    .then(() => this.app.client.webContents.selectAll())
+    .then(() => this.app.client.getSelectedText())
+    .then((result) => text = result)
+    .then(() => expect(text).to.not.equal(''))
+    .then(() => this.app.client.webContents.selectAll())
+    .then(() => this.app.client.browserWindow.send('copy', true))
+    .then(() => this.app.client.browserWindow.send('paste', true))
+    .then(() => wait(1000))
+    .then(() => this.app.client.getText('.terminal-instance'))
+    .then((result) => textOut = result.replace(/\n|\r/g, '').replace(/ /g, ''))
+    .then(() => expect(textOut.endsWith(text)).to.be.true)
+  });
+
+  it('should copy a link on click', () => {
+    let testString: string = 'http://bleenco.com/';
+    return this.app.client.waitUntilWindowLoaded()
+      .then(() => this.app.client.keys(testString + '\r\n'))
+      .then(() => wait(2000))
+      .then(() => this.app.client.pause(3000))
+      .then(() => this.app.client.click('.terminal-instance a'))
+      .then(() => this.app.client.pause(1000))
+      .then(() => this.app.electron.clipboard.readText())
+      .then(res => expect(res).to.contain(testString))
+  });
+
+  // TODO: uncomment following two tests when `bash` will be default shell
+  xit('should show current directory', () => {
+    return this.app.client.waitUntilWindowLoaded()
+      .then(() => wait(1000))
+      .then(() => this.app.client.getText('.current-folder-text'))
+      .then(result => expect(result.replace(/~/, homedir())).to.equal(process.cwd()));
+  });
+
+  xit('should update current directory', () => {
+    return this.app.client.waitUntilWindowLoaded()
+      .then(() => wait(1000))
+      .then(() => this.app.client.keys('cd ..\r\n'))
+      .then(() => wait(1000))
+      .then(() => process.chdir('..'))
+      .then(() => wait(1000))
+      .then(() => this.app.client.getText('.current-folder-text'))
+      .then(result => expect(result.replace(/~/, homedir())).to.equal(process.cwd()));
+  });
 });

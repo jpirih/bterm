@@ -14,6 +14,7 @@ import { WindowTerminalComponent } from './components/window-terminal';
 import { WindowBottomComponent } from './components/window-bottom';
 import { WindowSidebarComponent } from './components/window-sidebar';
 import { WindowNotificationComponent } from './components/window-notification';
+import { SystemServiceProvider } from './services/system.service';
 
 @NgModule({
   declarations: [
@@ -35,7 +36,8 @@ import { WindowNotificationComponent } from './components/window-notification';
     XtermServiceProvider,
     PTYServiceProvider,
     SearchServiceProvider,
-    GITServiceProvider
+    GITServiceProvider,
+    SystemServiceProvider
   ],
   bootstrap: [ AppComponent ]
 })
